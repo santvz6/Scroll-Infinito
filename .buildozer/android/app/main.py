@@ -7,7 +7,6 @@ from kivy.uix.label import Label
 from kivy.animation import Animation
 from kivy.clock import Clock
 import random
-from colorsys import rgb_to_hsv, hsv_to_rgb  # Para trabajar con HSV
 
 
 class ColorScreen(Screen):
@@ -15,24 +14,22 @@ class ColorScreen(Screen):
         super().__init__(**kwargs)
         with self.canvas:
             self.color = Color(0, 0, 0, 1)
-            self.puntuacion = 0
             self.rect = Rectangle(size=self.size, pos=self.pos)
         self.bind(size=self.update_rect, pos=self.update_rect)
 
-        # Etiqueta para mostrar la puntuación
+        # Etiquetas
         self.score_label = Label(
-            text=f"{self.puntuacion:.0f}",
+            text="0",
             font_size=50,
-            color=(1, 1, 1, 1),  # Color inicial (blanco)
+            color=(1, 1, 1, 1),
             pos_hint={"center_x": 0.95, "center_y": 0.95},
         )
         self.count_label = Label(
             text=self.name,
             font_size=100,
-            color=(1, 1, 1, 1),  # Color inicial (blanco)
+            color=(1, 1, 1, 1),
             pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
-
         self.add_widget(self.score_label)
         self.add_widget(self.count_label)
 
@@ -42,31 +39,20 @@ class ColorScreen(Screen):
         self.rect.size = self.size
         self.rect.pos = self.pos
 
-    def change_color(self, *args):
+    def change_color(self):
         # Generar un color aleatorio
         r, g, b = random.random(), random.random(), random.random()
         self.color.rgb = (r, g, b)
-        
-        # Calcular puntuación
-        self.puntuacion = (r + g + b) / 3 * 100  # Puntuación basada en la media de RGB
-        self.score_label.text = f"{self.puntuacion:.0f}"  # Actualizar el texto de la etiqueta
+
+        # Actualizar etiquetas
+        self.score_label.text = f"{((r + g + b) / 3 * 100):.0f}"
         self.count_label.text = self.name
 
-        # Calcular luminosidad del fondo
+        # Cambiar el color del texto según la luminosidad
         luminosidad = 0.299 * r + 0.587 * g + 0.114 * b
-
-        # Determinar el color del texto (blanco si el fondo es oscuro, negro si es claro)
-        if luminosidad < 0.5:
-            text_color = (1, 1, 1, 1)  # Blanco
-        else:
-            text_color = (0, 0, 0, 1)  # Negro
-
-        # Aplicar el color al texto
+        text_color = (1, 1, 1, 1) if luminosidad < 0.5 else (0, 0, 0, 1)
         self.score_label.color = text_color
         self.count_label.color = text_color
-
-        print(f"Fondo RGB: {self.color.rgb}, Luminosidad: {luminosidad}, Texto: {text_color}")
-
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
@@ -79,14 +65,14 @@ class ColorScreen(Screen):
 
     def show_heart(self, touch):
         # Ajustar tamaño del corazón según la puntuación
-        heart_size = 300 * (self.puntuacion / 100)
+        heart_size = 300 * (float(self.score_label.text) / 100)
         # Crear un nuevo corazón en la posición del toque
         heart = Image(
             source="assets/heart.png",
             size_hint=(None, None),
             size=(heart_size, heart_size),
             pos=(touch.x - heart_size / 2, touch.y - heart_size / 2),  # Centrar el corazón en el toque
-            opacity=0
+            opacity=0,
         )
         self.add_widget(heart)
 
@@ -98,23 +84,55 @@ class ColorScreen(Screen):
 
 class ScrollApp(App):
     def build(self):
-        self.sm = ScreenManager(transition=SlideTransition(direction='up', duration=0.5))
-        self.screen_count = 1
-        initial_screen = ColorScreen(name=f'{self.screen_count}')
-        self.sm.add_widget(initial_screen)
-        initial_screen.bind(on_touch_move=self.on_touch_move)
+        self.sm = ScreenManager(transition=SlideTransition(direction="up", duration=0.5))
+        self.history = []  # Historial de pantallas
+        self.current_index = -1  # Índice actual en el historial
+
+        # Primera pantalla
+        self.add_new_screen()
+
         return self.sm
 
+    def add_new_screen(self):
+        """Crea y añade una nueva pantalla al ScreenManager."""
+        self.current_index += 1  # Mover el índice hacia adelante
+        # Eliminar pantallas futuras si se navega hacia adelante desde un punto intermedio
+        self.history = self.history[: self.current_index]
+
+        # Crear una nueva pantalla
+        screen_count = len(self.history) + 1
+        new_screen = ColorScreen(name=f"{screen_count}")
+        new_screen.change_color()
+        new_screen.bind(on_touch_move=self.on_touch_move)
+
+        # Añadir la pantalla al administrador y al historial
+        self.sm.add_widget(new_screen)
+        self.history.append(new_screen.name)
+        self.sm.current = new_screen.name
+
+    def navigate_to_screen(self, index):
+        """Navega a una pantalla existente en el historial."""
+        if index < self.current_index:  # Retroceder
+            self.sm.transition.direction = "down"
+        else:  # Avanzar
+            self.sm.transition.direction = "up"
+
+        self.current_index = index
+        self.sm.current = self.history[self.current_index]
+
     def on_touch_move(self, screen, touch):
-        if touch.dy > 25:
-            self.screen_count += 1
-            new_screen = ColorScreen(name=f'{self.screen_count}')
-            new_screen.change_color()
-            new_screen.bind(on_touch_move=self.on_touch_move)  # Vincular el evento de deslizamiento
-            self.sm.add_widget(new_screen)
-            self.sm.current = new_screen.name
+        if touch.dy > 25:  # Deslizar hacia arriba
+            if self.current_index == len(self.history) - 1:
+                self.add_new_screen()  # Añadir una nueva pantalla si estamos en la última
+            else:
+                self.navigate_to_screen(self.current_index + 1)  # Navegar hacia adelante
+
+        elif touch.dy < -25:  # Deslizar hacia abajo
+            if self.current_index > 0:  # Si no estamos en la primera pantalla
+                self.navigate_to_screen(self.current_index - 1)  # Navegar hacia atrás
+
         return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ScrollApp().run()

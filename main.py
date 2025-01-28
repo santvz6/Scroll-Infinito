@@ -33,6 +33,8 @@ class ColorScreen(Screen):
         self.add_widget(self.score_label)
         self.add_widget(self.count_label)
 
+        self.last_touch_time = 0  # Para rastrear el tiempo del último toque
+
     def update_rect(self, *args):
         self.rect.size = self.size
         self.rect.pos = self.pos
@@ -41,8 +43,6 @@ class ColorScreen(Screen):
         # Generar un color aleatorio
         r, g, b = random.random(), random.random(), random.random()
         self.color.rgb = (r, g, b)
-        self.rect.size = self.size
-        self.rect.pos = self.pos
 
         # Actualizar etiquetas
         self.score_label.text = f"{((r + g + b) / 3 * 100):.0f}"
@@ -53,6 +53,33 @@ class ColorScreen(Screen):
         text_color = (1, 1, 1, 1) if luminosidad < 0.5 else (0, 0, 0, 1)
         self.score_label.color = text_color
         self.count_label.color = text_color
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            current_time = Clock.get_time()
+            # Si el tiempo entre dos toques es menor a 0.3 segundos, se considera un doble toque
+            if current_time - self.last_touch_time < 0.3:
+                self.show_heart(touch)
+            self.last_touch_time = current_time
+        return super().on_touch_down(touch)
+
+    def show_heart(self, touch):
+        # Ajustar tamaño del corazón según la puntuación
+        heart_size = 300 * (float(self.score_label.text) / 100)
+        # Crear un nuevo corazón en la posición del toque
+        heart = Image(
+            source="assets/heart.png",
+            size_hint=(None, None),
+            size=(heart_size, heart_size),
+            pos=(touch.x - heart_size / 2, touch.y - heart_size / 2),  # Centrar el corazón en el toque
+            opacity=0,
+        )
+        self.add_widget(heart)
+
+        # Animación para hacer aparecer y desaparecer el corazón
+        anim = Animation(opacity=1, duration=0.2) + Animation(opacity=0, duration=1.0)
+        anim.bind(on_complete=lambda *args: self.remove_widget(heart))  # Eliminar el corazón después de la animación
+        anim.start(heart)
 
 
 class ScrollApp(App):
@@ -89,7 +116,7 @@ class ScrollApp(App):
             self.sm.transition.direction = "down"
         else:  # Avanzar
             self.sm.transition.direction = "up"
-        
+
         self.current_index = index
         self.sm.current = self.history[self.current_index]
 

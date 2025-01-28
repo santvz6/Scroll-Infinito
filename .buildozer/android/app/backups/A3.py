@@ -22,13 +22,13 @@ class ColorScreen(Screen):
         # Etiqueta para mostrar la puntuación
         self.score_label = Label(
             text=f"{self.puntuacion:.0f}",
-            font_size=20,
+            font_size=50,
             color=(1, 1, 1, 1),  # Color inicial (blanco)
             pos_hint={"center_x": 0.95, "center_y": 0.95},
         )
         self.count_label = Label(
             text=self.name,
-            font_size=50,
+            font_size=100,
             color=(1, 1, 1, 1),  # Color inicial (blanco)
             pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
@@ -52,18 +52,21 @@ class ColorScreen(Screen):
         self.score_label.text = f"{self.puntuacion:.0f}"  # Actualizar el texto de la etiqueta
         self.count_label.text = self.name
 
-        # Convertir RGB a HSV
-        h, s, v = rgb_to_hsv(r, g, b)
-        
-        # Calcular el color complementario desplazando el tono (hue) 180 grados
-        h_complementario = (h + 0.5) % 1  # +180° y mantenerlo en rango [0, 1]
-        r_complementario, g_complementario, b_complementario = hsv_to_rgb(h_complementario, s, v)
+        # Calcular luminosidad del fondo
+        luminosidad = 0.299 * r + 0.587 * g + 0.114 * b
 
-        # Aplicar el color complementario al texto
-        self.score_label.color = (r_complementario, g_complementario, b_complementario, 1)
-        self.count_label.color = (r_complementario, g_complementario, b_complementario, 1)
-        
-        print(f"Fondo RGB: {self.color.rgb}, Texto Complementario RGB: {(r_complementario, g_complementario, b_complementario)}")
+        # Determinar el color del texto (blanco si el fondo es oscuro, negro si es claro)
+        if luminosidad < 0.5:
+            text_color = (1, 1, 1, 1)  # Blanco
+        else:
+            text_color = (0, 0, 0, 1)  # Negro
+
+        # Aplicar el color al texto
+        self.score_label.color = text_color
+        self.count_label.color = text_color
+
+        print(f"Fondo RGB: {self.color.rgb}, Luminosidad: {luminosidad}, Texto: {text_color}")
+
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
@@ -76,7 +79,7 @@ class ColorScreen(Screen):
 
     def show_heart(self, touch):
         # Ajustar tamaño del corazón según la puntuación
-        heart_size = 250 * (self.puntuacion / 100)
+        heart_size = 300 * (self.puntuacion / 100)
         # Crear un nuevo corazón en la posición del toque
         heart = Image(
             source="assets/heart.png",
