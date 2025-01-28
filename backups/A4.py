@@ -33,8 +33,6 @@ class ColorScreen(Screen):
         self.add_widget(self.score_label)
         self.add_widget(self.count_label)
 
-        self.last_touch_time = 0  # Para rastrear el tiempo del último toque
-
     def update_rect(self, *args):
         self.rect.size = self.size
         self.rect.pos = self.pos
@@ -96,13 +94,6 @@ class ScrollApp(App):
         self.sm.current = self.history[self.current_index]
 
     def on_touch_move(self, screen, touch):
-        if screen.collide_point(*touch.pos):
-            current_time = Clock.get_time()
-            # Si el tiempo entre dos toques es menor a 0.3 segundos, se considera un doble toque
-            if current_time - screen.last_touch_time < 0.3:
-                self.show_heart(touch)
-            screen.last_touch_time = current_time
-
         if touch.dy > 25:  # Deslizar hacia arriba
             if self.current_index == len(self.history) - 1:
                 self.add_new_screen()  # Añadir una nueva pantalla si estamos en la última
@@ -114,24 +105,6 @@ class ScrollApp(App):
                 self.navigate_to_screen(self.current_index - 1)  # Navegar hacia atrás
 
         return True
-
-    def show_heart(self, touch):
-        # Ajustar tamaño del corazón según la puntuación
-        heart_size = 300 * (self.puntuacion / 100)
-        # Crear un nuevo corazón en la posición del toque
-        heart = Image(
-            source="assets/heart.png",
-            size_hint=(None, None),
-            size=(heart_size, heart_size),
-            pos=(touch.x - heart_size / 2, touch.y - heart_size / 2),  # Centrar el corazón en el toque
-            opacity=0
-        )
-        self.add_widget(heart)
-
-        # Animación para hacer aparecer y desaparecer el corazón
-        anim = Animation(opacity=1, duration=0.2) + Animation(opacity=0, duration=1.0)
-        anim.bind(on_complete=lambda *args: self.remove_widget(heart))  # Eliminar el corazón después de la animación
-        anim.start(heart)
 
 
 if __name__ == "__main__":
