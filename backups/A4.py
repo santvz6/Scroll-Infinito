@@ -12,6 +12,7 @@ import random
 class ColorScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         with self.canvas:
             self.color = Color(0, 0, 0, 1)
             self.rect = Rectangle(size=self.size, pos=self.pos)
@@ -30,6 +31,7 @@ class ColorScreen(Screen):
             color=(1, 1, 1, 1),
             pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
+
         self.add_widget(self.score_label)
         self.add_widget(self.count_label)
 

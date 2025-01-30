@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dopamina Infinita</string>
-    <string name="private_version">803bdc6d78266074fa83def632675cc0f7a284e8</string>
+    <string name="private_version">01787215bd6177d70a318bf86917e18d5bf790f5</string>
     <string name="presplash_color">#000000</string>
     <string name="urlScheme">kivy</string>
 </resources>
